@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.cache/
+*.pid
+data.json
+tab
+.DS_Store

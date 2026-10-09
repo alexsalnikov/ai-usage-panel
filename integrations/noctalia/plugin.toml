@@ -1,0 +1,21 @@
+id = "local/desktop-panels"
+name = "Desktop panels"
+version = "1.0.0"
+plugin_api = 24
+author = "local"
+description = "Omagai season label and Claude/Grok usage label for the bar."
+
+# Middle-click would otherwise open this plugin's settings, which has none.
+[[widget]]
+id = "omagai"
+entry = "omagai.luau"
+
+  [widget.actions]
+  middle = "none"
+
+[[widget]]
+id = "ai-usage"
+entry = "ai-usage.luau"
+
+  [widget.actions]
+  middle = "none"

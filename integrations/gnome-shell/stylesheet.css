@@ -1,0 +1,172 @@
+/* Tokyo Night, monospace. Bar widths live in extension.js; keep in step. */
+
+.popup-menu-content.ai-menu {
+    background-color: #1a1b26;
+    border: 1px solid #7aa2f7;
+    border-radius: 6px;
+    padding: 18px 20px;
+}
+
+.ai-menu .popup-menu-item {
+    padding: 0;
+    background-color: transparent;
+}
+
+.ai-panel {
+    width: 400px;
+    spacing: 10px;
+}
+
+.ai-panel StLabel,
+.ai-tab {
+    font-family: "CaskaydiaMono Nerd Font";
+    color: #c0caf5;
+}
+
+/* ---------- Tabs ---------- */
+
+.ai-tabs {
+    spacing: 8px;
+    margin-bottom: 6px;
+}
+
+.ai-tab {
+    padding: 8px 0;
+    border: 1px solid #3b4261;
+    border-radius: 3px;
+    background-color: #1f2335;
+    color: #737aa2;
+    font-size: 11pt;
+}
+
+.ai-tab:hover {
+    background-color: #292e42;
+    color: #c0caf5;
+}
+
+.ai-tab:checked {
+    background-color: #2f334d;
+    border-color: #7aa2f7;
+    color: #c0caf5;
+    font-weight: bold;
+}
+
+/* ---------- Text ---------- */
+
+.ai-heading {
+    font-size: 9.5pt;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    color: #737aa2;
+    margin-top: 4px;
+}
+
+.ai-muted {
+    font-size: 10pt;
+    color: #737aa2;
+}
+
+.ai-separator {
+    height: 1px;
+    margin: 6px 0;
+    background-color: #292e42;
+}
+
+/* ---------- Limits ---------- */
+
+.ai-limit {
+    spacing: 6px;
+    margin-bottom: 4px;
+}
+
+.ai-limit-name {
+    font-size: 12pt;
+}
+
+.ai-limit-pct {
+    font-size: 10pt;
+}
+
+.ai-limit-bar-track {
+    height: 6px;
+    border-radius: 3px;
+    background-color: #2f334d;
+}
+
+.ai-limit-bar-fill {
+    height: 6px;
+    border-radius: 3px;
+    background-color: #a9b1f6;
+}
+
+/* ---------- Tokens by day ---------- */
+
+.ai-day {
+    spacing: 14px;
+}
+
+.ai-day-name {
+    width: 60px;
+    font-size: 10.5pt;
+    color: #737aa2;
+}
+
+.ai-day-value {
+    font-size: 10.5pt;
+    color: #a9b1d6;
+}
+
+.ai-today .ai-day-name,
+.ai-today .ai-day-value {
+    font-weight: bold;
+    color: #c0caf5;
+}
+
+.ai-day-bar-track,
+.ai-day-bar-today-track {
+    height: 5px;
+    border-radius: 3px;
+    background-color: #2f334d;
+}
+
+.ai-day-bar-fill {
+    height: 5px;
+    border-radius: 3px;
+    background-color: #737aa2;
+}
+
+.ai-day-bar-today-fill {
+    height: 5px;
+    border-radius: 3px;
+    background-color: #a9b1f6;
+}
+
+/* ---------- Tokens by model ---------- */
+
+.ai-model {
+    height: 34px;
+    background-color: #1f2335;
+}
+
+.ai-model-fill {
+    background-color: #2f334d;
+}
+
+.ai-model-text {
+    padding: 0 12px;
+}
+
+.ai-model-name {
+    font-size: 11pt;
+    color: #c0caf5;
+}
+
+.ai-model-value {
+    font-size: 10.5pt;
+    color: #737aa2;
+}
+
+.ai-model-name,
+.ai-model-value {
+    margin-top: 7px;
+}

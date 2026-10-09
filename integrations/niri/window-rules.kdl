@@ -1,0 +1,13 @@
+// Niri window rule for AI Usage popup
+// Add this to ~/.config/niri/config.kdl to float the popup neatly under the top-right bar
+
+window-rule {
+    match app-id="^dev\\.local\\.AiUsagePopup$"
+    open-floating true
+    open-focused true
+    default-floating-position x=12 y=8 relative-to="top-right"
+    focus-ring { off; }
+    border { off; }
+    geometry-corner-radius 6
+    clip-to-geometry true
+}

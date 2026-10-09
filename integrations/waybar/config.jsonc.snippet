@@ -1,0 +1,11 @@
+// Add this to your waybar config.jsonc "modules-right" (or "modules-center" / "modules-left"):
+// "custom/ai-usage"
+
+"custom/ai-usage": {
+    "exec": "~/.config/waybar/scripts/ai-usage.py",
+    "on-click": "~/.config/waybar/scripts/ai-usage-popup.py",
+    "exec-on-event": false,
+    "return-type": "json",
+    "interval": 600,
+    "tooltip": false
+}

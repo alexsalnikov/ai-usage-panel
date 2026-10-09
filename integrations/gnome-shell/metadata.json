@@ -1,0 +1,7 @@
+{
+  "uuid": "ai-usage@local",
+  "name": "AI Usage",
+  "description": "Claude plan limits and Claude/Grok token usage in the top bar.",
+  "shell-version": ["50"],
+  "version": 1
+}
