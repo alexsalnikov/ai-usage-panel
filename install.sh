@@ -16,9 +16,9 @@ chmod +x ~/.config/waybar/scripts/usage.py ~/.config/waybar/scripts/ai-usage.py 
 
 # 2. Install Noctalia plugin
 echo "==> Installing Noctalia plugin..."
-mkdir -p ~/.local/share/noctalia/plugins/desktop-panels
-cp "$REPO_DIR/integrations/noctalia/plugin.toml" ~/.local/share/noctalia/plugins/desktop-panels/
-cp "$REPO_DIR/integrations/noctalia/ai-usage.luau" ~/.local/share/noctalia/plugins/desktop-panels/
+mkdir -p ~/.local/share/noctalia/plugins/ai-usage
+cp "$REPO_DIR/integrations/noctalia/plugin.toml" ~/.local/share/noctalia/plugins/ai-usage/
+cp "$REPO_DIR/integrations/noctalia/ai-usage.luau" ~/.local/share/noctalia/plugins/ai-usage/
 
 # 3. Install GNOME Shell Extension
 echo "==> Installing GNOME Shell extension (ai-usage@local)..."
@@ -32,11 +32,13 @@ cp "$REPO_DIR/backend/usage.py" "$GNOME_EXT_DIR/"
 echo ""
 echo "Installation complete!"
 echo "- Waybar/Noctalia scripts installed to: ~/.config/waybar/scripts/"
-echo "- Noctalia widget installed to: ~/.local/share/noctalia/plugins/desktop-panels/"
+echo "- Noctalia widget installed to: ~/.local/share/noctalia/plugins/ai-usage/"
 echo "- GNOME extension installed to: ~/.local/share/gnome-shell/extensions/ai-usage@local/"
 echo ""
 echo "Next steps:"
-echo "1. If using Noctalia, add [widget.\"ai-usage\"] in ~/.config/noctalia/bar.toml"
+echo "1. If using Noctalia, add to ~/.config/noctalia/bar.toml:"
+echo '   [widget."ai-usage"]'
+echo '   type = "local/ai-usage:ai-usage"'
 echo "2. If using Waybar, see integrations/waybar/config.jsonc.snippet"
 echo "3. If using Niri, add window rule from integrations/niri/window-rules.kdl to ~/.config/niri/config.kdl"
 echo "4. If using GNOME Shell, enable with: gnome-extensions enable ai-usage@local"

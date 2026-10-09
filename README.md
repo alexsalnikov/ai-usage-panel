@@ -80,7 +80,7 @@ Add the widget to `~/.config/noctalia/bar.toml`:
 
 ```toml
 [widget."ai-usage"]
-type = "local/desktop-panels:ai-usage"
+type = "local/ai-usage:ai-usage"
 
 [bar.default]
 end = [

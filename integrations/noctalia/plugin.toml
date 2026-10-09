@@ -1,17 +1,9 @@
-id = "local/desktop-panels"
-name = "Desktop panels"
+id = "local/ai-usage"
+name = "AI Usage Panel"
 version = "1.0.0"
 plugin_api = 24
-author = "local"
-description = "Omagai season label and Claude/Grok usage label for the bar."
-
-# Middle-click would otherwise open this plugin's settings, which has none.
-[[widget]]
-id = "omagai"
-entry = "omagai.luau"
-
-  [widget.actions]
-  middle = "none"
+author = "community"
+description = "Claude plan limits, and Claude, Grok, and Antigravity token usage for the bar."
 
 [[widget]]
 id = "ai-usage"
