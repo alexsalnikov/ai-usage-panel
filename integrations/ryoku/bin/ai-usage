@@ -1,0 +1,312 @@
+#!/usr/bin/env python3
+"""Collect Claude, Grok and Antigravity usage for the AI Usage plugin; prints one JSON object.
+
+Tokens come from the CLIs' own logs (Claude Code, Grok CLI). Claude's plan
+limits come from the endpoint Claude Code's /usage uses, with the login Claude
+Code already saved; the token is sent only to api.anthropic.com. Per-file
+results are cached by mtime and size, so a refresh only re-reads logs that grew.
+"""
+import json
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.request
+from datetime import date, datetime, timedelta
+from pathlib import Path
+
+HOME = Path.home()
+CLAUDE_LOGS = HOME / '.claude' / 'projects'
+CLAUDE_CREDS = HOME / '.claude' / '.credentials.json'
+GROK_LOGS = HOME / '.grok' / 'sessions'
+CACHE = (Path(os.environ.get('XDG_CACHE_HOME') or HOME / '.cache')
+         / 'ryoku' / 'plugins' / 'ai-usage' / 'files.json')
+
+DAYS = 7
+MODEL_DAYS = 30
+CACHE_VERSION = 1
+
+
+def local_day(ts):
+    return datetime.fromtimestamp(ts).date().isoformat()
+
+
+def claude_file(path):
+    """{msg_key: [day, model, tokens]} for one Claude Code transcript."""
+    out = {}
+    with open(path, encoding='utf-8', errors='replace') as f:
+        for line in f:
+            if '"usage"' not in line:
+                continue
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            m = d.get('message')
+            if not isinstance(m, dict) or not isinstance(m.get('usage'), dict):
+                continue
+            model = m.get('model') or ''
+            if not model or model.startswith('<'):
+                continue
+            u = m['usage']
+            tokens = sum(u.get(k) or 0 for k in (
+                'input_tokens', 'output_tokens',
+                'cache_creation_input_tokens', 'cache_read_input_tokens'))
+            ts = d.get('timestamp')
+            if not ts or not tokens:
+                continue
+            day = local_day(datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp())
+            # A response is logged once per content block, and again in a
+            # resumed session's copy: key on message and request id.
+            out[f"{m.get('id')}:{d.get('requestId')}"] = [day, model, tokens]
+    return out
+
+
+def grok_file(path):
+    """{turn_key: [day, model, tokens]} for one Grok CLI updates.jsonl."""
+    out = {}
+    with open(path, encoding='utf-8', errors='replace') as f:
+        for line in f:
+            if '"turn_completed"' not in line:
+                continue
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            upd = d.get('params', {}).get('update', {})
+            usage = upd.get('usage') or {}
+            day = local_day(d.get('timestamp') or 0)
+            key = upd.get('prompt_id') or d.get('params', {}).get('_meta', {}).get('eventId')
+            for model, mu in (usage.get('modelUsage') or {}).items():
+                tokens = mu.get('totalTokens') or 0
+                if tokens:
+                    out[f'{key}:{model}'] = [day, model, tokens]
+    return out
+
+
+def pb_fields(buf):
+    """Minimal protobuf wire reader: {field_number: [values]} (bytes or int)."""
+    out, i, n = {}, 0, len(buf)
+
+    def varint():
+        nonlocal i
+        shift = val = 0
+        while True:
+            b = buf[i]
+            i += 1
+            val |= (b & 0x7f) << shift
+            if b < 0x80:
+                return val
+            shift += 7
+
+    while i < n:
+        key = varint()
+        field, wire = key >> 3, key & 7
+        if wire == 0:
+            val = varint()
+        elif wire == 1:
+            val, i = buf[i:i + 8], i + 8
+        elif wire == 2:
+            size = varint()
+            val, i = buf[i:i + size], i + size
+        elif wire == 5:
+            val, i = buf[i:i + 4], i + 4
+        else:
+            raise ValueError(f'unsupported wire type {wire}')
+        out.setdefault(field, []).append(val)
+    return out
+
+
+def antigravity_file(path):
+    """{gen_key: [day, model, tokens]} for one Antigravity conversation DB.
+
+    gen_metadata rows hold the model name (1.19) and token usage (1.4:
+    input, cache write, output, cache read); the matching step (by turn id)
+    carries the timestamp.
+    """
+    import sqlite3
+    out = {}
+    con = sqlite3.connect(f'file:{path}?mode=ro', uri=True, timeout=2)
+    try:
+        turn_ts = {}
+        for (meta,) in con.execute('SELECT metadata FROM steps ORDER BY idx'):
+            if not meta:
+                continue
+            f = pb_fields(meta)
+            if 12 in f and 1 in f:
+                turn = f[12][0].decode(errors='replace')
+                turn_ts.setdefault(turn, pb_fields(f[1][0]).get(1, [0])[0])
+        fallback = os.path.getmtime(path)
+        for idx, data in con.execute('SELECT idx, data FROM gen_metadata'):
+            if not data:
+                continue
+            top = pb_fields(data)
+            if 1 not in top:
+                continue
+            gen = pb_fields(top[1][0])
+            model = gen.get(19, [b''])[0].decode(errors='replace')
+            if not model or 4 not in gen:
+                continue
+            u = pb_fields(gen[4][0])
+            tokens = sum(u.get(k, [0])[0] for k in (1, 2, 3, 5))
+            if not tokens:
+                continue
+            turn = top.get(4, [b''])[0].decode(errors='replace')
+            day = local_day(turn_ts.get(turn) or fallback)
+            out[f'{path.stem}:{idx}'] = [day, model, tokens]
+    finally:
+        con.close()
+    return out
+
+
+def antigravity_dbs():
+    for base in (HOME / '.gemini' / 'antigravity-cli', HOME / '.gemini' / 'antigravity'):
+        yield from (base / 'conversations').glob('*.db')
+
+
+def agy_sig(path):
+    """DB plus its WAL: new turns land in the -wal file first."""
+    st = path.stat()
+    wal = path.with_name(path.name + '-wal')
+    w = wal.stat() if wal.exists() else None
+    return [st.st_mtime, st.st_size, w.st_mtime if w else 0, w.st_size if w else 0]
+
+
+def scan(files, parse, cache, sig_of=None):
+    records = {}
+    for p in files:
+        try:
+            if sig_of:
+                sig = sig_of(p)
+            else:
+                st = p.stat()
+                sig = [st.st_mtime, st.st_size]
+        except OSError:
+            continue
+        entry = cache.get(str(p))
+        if not entry or entry['sig'] != sig:
+            try:
+                entry = {'sig': sig, 'records': parse(p)}
+            except Exception:  # noqa: BLE001 — unreadable/locked file: skip it
+                continue
+            cache[str(p)] = entry
+        records.update(entry['records'])
+    return records
+
+
+def pretty_model(model):
+    m = re.sub(r'-\d{8}$', '', model)          # dated snapshot suffix
+    m = re.sub(r'^claude-', '', m)
+    m = re.sub(r'-(build|beta|preview)$', '', m)
+    parts = m.split('-')
+    words = [p for p in parts if not p.isdigit()]
+    version = '.'.join(p for p in parts if p.isdigit())
+    name = ' '.join(w.capitalize() for w in words)
+    return f'{name} {version}'.strip() if version else name
+
+
+def agy_pretty_model(model):
+    """claude-opus-5-5-medium -> Opus 5.5 Medium; gemini-3-pro-high -> Gemini 3 Pro High."""
+    m = re.sub(r'^claude-', '', model)
+    m = re.sub(r'(?<=\d)-(?=\d)', '.', m)
+    return ' '.join(p if p[0].isdigit() else p.capitalize() for p in m.split('-') if p)
+
+
+def summarize(records, namer=pretty_model):
+    today = date.today()
+    days = [(today - timedelta(days=i)).isoformat() for i in range(DAYS - 1, -1, -1)]
+    by_day = dict.fromkeys(days, 0)
+    since = (today - timedelta(days=MODEL_DAYS - 1)).isoformat()
+    by_model = {}
+    for day, model, tokens in records.values():
+        if day in by_day:
+            by_day[day] += tokens
+        if day >= since:
+            name = namer(model)
+            by_model[name] = by_model.get(name, 0) + tokens
+    return {
+        'days': [{'date': d, 'tokens': by_day[d]} for d in days],
+        'models': sorted(({'name': k, 'tokens': v} for k, v in by_model.items()),
+                         key=lambda x: -x['tokens']),
+    }
+
+
+LIMIT_LABELS = {
+    'five_hour': 'Session',
+    'seven_day': 'Weekly',
+    'seven_day_opus': 'Opus Weekly',
+    'seven_day_sonnet': 'Sonnet Weekly',
+}
+
+
+def claude_limits():
+    try:
+        creds = json.loads(CLAUDE_CREDS.read_text())['claudeAiOauth']
+    except (OSError, ValueError, KeyError):
+        return {'error': 'Not signed in to Claude Code'}
+    if creds.get('expiresAt') and creds['expiresAt'] / 1000 < time.time():
+        return {'error': 'Login expired · open Claude Code to refresh'}
+    req = urllib.request.Request(
+        'https://api.anthropic.com/api/oauth/usage',
+        headers={
+            'Authorization': f"Bearer {creds['accessToken']}",
+            'anthropic-beta': 'oauth-2025-04-20',
+            'Content-Type': 'application/json',
+        })
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.load(r)
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            return {'error': 'Login expired · open Claude Code to refresh'}
+        return {'error': f'Limits unavailable (HTTP {e.code})'}
+    except (OSError, ValueError):
+        return {'error': 'Limits unavailable (offline?)'}
+
+    limits = []
+    for key, label in LIMIT_LABELS.items():
+        v = data.get(key)
+        if isinstance(v, dict) and v.get('utilization') is not None:
+            limits.append({'label': label, 'percent': v['utilization'],
+                           'resets_at': v.get('resets_at')})
+    return {'plan': creds.get('subscriptionType'), 'limits': limits}
+
+
+def main():
+    try:
+        cache = json.loads(CACHE.read_text())
+        if cache.get('version') != CACHE_VERSION:
+            raise ValueError
+    except (OSError, ValueError):
+        cache = {'version': CACHE_VERSION}
+    files = cache.setdefault('files', {})
+
+    claude = scan(CLAUDE_LOGS.rglob('*.jsonl'), claude_file, files)
+    grok = scan(GROK_LOGS.rglob('updates.jsonl'), grok_file, files)
+    agy_dbs = list(antigravity_dbs())
+    agy = scan(agy_dbs, antigravity_file, files, agy_sig)
+
+    # Forget files that were deleted.
+    live = ({str(p) for p in CLAUDE_LOGS.rglob('*.jsonl')}
+            | {str(p) for p in GROK_LOGS.rglob('updates.jsonl')}
+            | {str(p) for p in agy_dbs})
+    for k in [k for k in files if k not in live]:
+        del files[k]
+
+    CACHE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = CACHE.with_suffix('.tmp')
+    tmp.write_text(json.dumps(cache))
+    tmp.replace(CACHE)
+
+    out = {
+        'updated': time.time(),
+        'claude': {**summarize(claude), **({} if '--no-limits' in sys.argv else claude_limits())},
+        'grok': summarize(grok),
+        'antigravity': summarize(agy, agy_pretty_model),
+    }
+    json.dump(out, sys.stdout)
+
+
+if __name__ == '__main__':
+    main()
