@@ -5,7 +5,7 @@ A sleek, lightweight desktop status panel and interactive GTK4 popup for monitor
 - **Grok CLI** (`~/.grok/`) — Token counts per prompt and model
 - **Antigravity CLI** (`~/.gemini/antigravity-cli/`) — Token counts extracted directly from conversation SQLite databases via protobuf wire parser
 
-Designed for modern Wayland desktops (e.g., **Niri**, **Hyprland**, **Sway**) with native integration for **Noctalia**, **Waybar**, and **GNOME Shell**.
+Designed for modern Wayland desktops (e.g., **Niri**, **Hyprland**, **Sway**) with native integration for **Noctalia**, **Waybar**, **GNOME Shell**, and **Ryoku**.
 
 ---
 
@@ -23,6 +23,7 @@ Designed for modern Wayland desktops (e.g., **Niri**, **Hyprland**, **Sway**) wi
   - **Noctalia**: Native Luau plugin widget.
   - **Waybar**: JSON custom module with click toggles.
   - **GNOME Shell**: Full native top-bar extension (`ai-usage@local`).
+  - **Ryoku**: Native Quickshell bar plugin with a themed QML panel.
   - **Niri**: Floating window rules for popup placement.
 
 ---
@@ -40,6 +41,7 @@ ai-usage-panel/
 │   ├── noctalia/           # Noctalia Luau widget plugin (plugin.toml + ai-usage.luau)
 │   ├── waybar/             # Waybar custom module config & snippets
 │   ├── gnome-shell/        # Native GNOME Shell 45-50 extension (extension.js, metadata, CSS)
+│   ├── ryoku/              # Ryoku (Quickshell) bar plugin: manifest, QML service/widget/panel
 │   └── niri/               # Niri window-rules snippet for top-right floating
 ├── install.sh              # One-step installation script
 ├── .gitignore
@@ -126,6 +128,16 @@ Enable the extension after installation:
 ```bash
 gnome-extensions enable ai-usage@local
 ```
+
+### 5. Ryoku
+The Ryoku plugin is self-contained and installs with Ryoku's own plugin
+manager (`install.sh` is not needed):
+```bash
+ryoku plugin add integrations/ryoku --bar --yes
+```
+It appears on the QS Bar; its settings are under QS Bar Settings > Community.
+See [integrations/ryoku/README.md](integrations/ryoku/README.md) for what it
+reads, writes, and sends.
 
 ---
 

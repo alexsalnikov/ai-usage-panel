@@ -1,0 +1,84 @@
+{
+  "id": "ai-usage",
+  "name": "AI Usage",
+  "version": "1.0.0",
+  "author": "Alex Salnikov <alex.salnikov.il@gmail.com>",
+  "description": "Claude plan limits, and Claude, Grok and Antigravity token usage on the bar, with a usage dashboard on click.",
+  "license": "MIT",
+  "official": false,
+  "hosts": [
+    "topbarGlyph"
+  ],
+  "entryPoints": {
+    "main": "service/Main.qml",
+    "content": "content/Widget.qml",
+    "panel": "content/Panel.qml"
+  },
+  "panel": {
+    "width": 380
+  },
+  "files": [
+    "bin/ai-usage"
+  ],
+  "capabilities": {
+    "densities": [
+      "glyph",
+      "compact"
+    ],
+    "network": [
+      "api.anthropic.com"
+    ]
+  },
+  "defaults": {
+    "host": "topbarGlyph",
+    "label": "AI Usage"
+  },
+  "dependencies": {
+    "commands": [
+      "python3"
+    ]
+  },
+  "metadata": {
+    "settings": [
+      {
+        "key": "barLabel",
+        "type": "choice",
+        "label": "Bar label",
+        "group": "AI Usage",
+        "default": "session",
+        "options": [
+          { "value": "session", "label": "Claude session limit (%)" },
+          { "value": "tokens", "label": "Today's tokens, all tools" }
+        ]
+      },
+      {
+        "key": "fetchLimits",
+        "type": "toggle",
+        "label": "Fetch Claude plan limits (api.anthropic.com)",
+        "group": "AI Usage",
+        "default": true
+      },
+      {
+        "key": "defaultTab",
+        "type": "choice",
+        "label": "Panel opens on",
+        "group": "AI Usage",
+        "default": "claude",
+        "options": [
+          { "value": "claude", "label": "Claude" },
+          { "value": "grok", "label": "Grok" },
+          { "value": "antigravity", "label": "Antigravity" }
+        ]
+      },
+      {
+        "key": "intervalMin",
+        "type": "int",
+        "label": "Refresh every (minutes)",
+        "group": "AI Usage",
+        "default": 10,
+        "min": 1,
+        "max": 60
+      }
+    ]
+  }
+}
