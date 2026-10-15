@@ -18,7 +18,7 @@ Item {
     readonly property string barLabel: settings ? (settings.barLabel ?? "session") : "session"
 
     // The last good result; kept when a later run fails.
-    property var data: null
+    property var usage: null
     property string error: ""
     property bool busy: false
     // The panel's open tab: claude, grok, antigravity. View state only.
@@ -31,22 +31,22 @@ Item {
     ]
 
     readonly property var session: {
-        const lims = svc.data && svc.data.claude ? (svc.data.claude.limits || []) : [];
+        const lims = svc.usage && svc.usage.claude ? (svc.usage.claude.limits || []) : [];
         return lims.find(l => l.label === "Session") || null;
     }
 
     readonly property real todayTokens: {
-        if (!svc.data) return 0;
+        if (!svc.usage) return 0;
         let n = 0;
         for (const t of svc.tabs) {
-            const days = svc.data[t.id] ? svc.data[t.id].days : [];
+            const days = svc.usage[t.id] ? svc.usage[t.id].days : [];
             if (days && days.length) n += days[days.length - 1].tokens;
         }
         return n;
     }
 
     readonly property string label: {
-        if (!svc.data) return "AI";
+        if (!svc.usage) return "AI";
         if (svc.barLabel === "tokens") return svc.formatTokens(svc.todayTokens);
         return svc.session ? Math.round(svc.session.percent) + "%" : "AI";
     }
@@ -96,7 +96,7 @@ Item {
                 return;
             }
             try {
-                svc.data = JSON.parse(out.text);
+                svc.usage = JSON.parse(out.text);
                 svc.error = "";
             } catch (e) {
                 svc.error = "Could not read usage output";

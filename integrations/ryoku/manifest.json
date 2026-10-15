@@ -1,7 +1,7 @@
 {
   "id": "ai-usage",
   "name": "AI Usage",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Alex Salnikov <alex.salnikov.il@gmail.com>",
   "description": "Claude plan limits, and Claude, Grok and Antigravity token usage on the bar, with a usage dashboard on click.",
   "license": "MIT",

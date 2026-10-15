@@ -17,9 +17,9 @@ Item {
     property bool active: false
 
     readonly property var service: pluginApi ? pluginApi.mainInstance : null
-    readonly property var data: service ? service.data : null
+    readonly property var usage: service ? service.usage : null
     readonly property string tab: service ? service.tab : "claude"
-    readonly property var svcData: data ? data[tab] : null
+    readonly property var svcData: usage ? usage[tab] : null
     readonly property var days: svcData ? svcData.days : []
     readonly property var models: svcData && svcData.models.length ? svcData.models : [{ name: "No usage yet", tokens: 0 }]
     readonly property real dayTop: Math.max(1, ...days.map(d => d.tokens))
@@ -39,8 +39,9 @@ Item {
 
     component Meter: Rectangle {
         property real fraction: 0
+        property real s: 1
         property color fill: Theme.accent
-        height: 4 * root.s
+        height: 4 * s
         color: Theme.hair
         Rectangle {
             width: parent.width * Math.max(0, Math.min(1, parent.fraction))
@@ -81,7 +82,7 @@ Item {
         }
 
         Text {
-            visible: !!root.service && (root.service.error !== "" || !root.data)
+            visible: !!root.service && (root.service.error !== "" || !root.usage)
             width: parent.width
             wrapMode: Text.Wrap
             text: root.service && root.service.error ? root.service.error : "Loading…"
@@ -136,6 +137,7 @@ Item {
                         }
                     }
                     Meter {
+                        s: root.s
                         width: parent.width
                         fraction: lim.modelData.percent / 100
                         fill: lim.modelData.percent >= 80 ? Theme.sun : Theme.accent
@@ -177,6 +179,7 @@ Item {
                         font.bold: day.today
                     }
                     Meter {
+                        s: root.s
                         anchors.verticalCenter: parent.verticalCenter
                         width: day.width - 44 * root.s - 56 * root.s - 16 * root.s
                         fraction: day.modelData.tokens / root.dayTop
@@ -231,6 +234,7 @@ Item {
                         }
                     }
                     Meter {
+                        s: root.s
                         width: parent.width
                         fraction: mdl.modelData.tokens / root.modelTop
                     }
@@ -245,7 +249,7 @@ Item {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.data ? "Updated " + new Date(root.data.updated * 1000).toLocaleTimeString(Qt.locale(), "HH:mm") : ""
+                text: root.usage ? "Updated " + new Date(root.usage.updated * 1000).toLocaleTimeString(Qt.locale(), "HH:mm") : ""
                 color: Theme.dim
                 font.family: Theme.font
                 font.pixelSize: 11 * root.s
